@@ -1,0 +1,827 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>포켓칼크</title>
+<style>
+  :root{
+    --bg:#1d2433; --card:#2a3346; --line:#3a455e;
+    --accent:#ffcb05; --accent2:#3b6cb7; --up:#ff6b6b; --down:#4dabf7; --text:#e8ecf3; --muted:#9aa6bd;
+  }
+  *{box-sizing:border-box}
+  body{margin:0; font-family:"Segoe UI","Malgun Gothic",sans-serif;
+    background:linear-gradient(160deg,#1d2433,#10141d); color:var(--text); min-height:100vh; padding:22px;}
+  .wrap{max-width:840px; margin:0 auto;}
+  h1{font-size:25px; text-align:center; margin:0 0 4px; letter-spacing:1px;}
+  h1 .ball{color:var(--accent);}
+  .sub{text-align:center; color:var(--muted); font-size:13px; margin-bottom:18px;}
+  .card{background:var(--card); border:1px solid var(--line); border-radius:14px;
+    padding:16px 18px; margin-bottom:16px; box-shadow:0 6px 20px rgba(0,0,0,.25);}
+  .card h2{font-size:15px; margin:0 0 12px; display:flex; align-items:center; gap:8px; flex-wrap:wrap;}
+  .tag{font-size:11px; background:#1b2230; border:1px solid var(--line); color:var(--muted); padding:2px 8px; border-radius:20px;}
+  .tag.lv{color:var(--accent); border-color:#5a4d1a;}
+  .row{display:flex; gap:12px; flex-wrap:wrap; align-items:flex-end; margin-bottom:10px;}
+  label{font-size:12px; color:#b9c2d6; display:block; margin-bottom:5px;}
+  input,select{background:#1b2230; border:1px solid var(--line); color:var(--text);
+    border-radius:8px; padding:9px 11px; font-size:14px; width:100%;}
+  input:focus,select:focus{outline:2px solid var(--accent2); border-color:var(--accent2);}
+  .field{flex:1; min-width:130px;}
+  table{width:100%; border-collapse:collapse;}
+  th,td{padding:7px 6px; text-align:center;}
+  th{font-size:11px; color:var(--muted); font-weight:600; border-bottom:1px solid var(--line);}
+  td .name{font-weight:700; font-size:14px;}
+  td input{width:70px; text-align:center; margin:0 auto;}
+  td .real{font-weight:800; font-size:16px;}
+  .typebadge{display:inline-block; font-size:11px; padding:2px 9px; border-radius:6px; margin-left:4px; background:#1b2230; border:1px solid var(--line);}
+  .btn{background:var(--accent); color:#1d2433; border:none; font-weight:800; padding:13px 20px; border-radius:10px; font-size:15px; cursor:pointer; width:100%; transition:.15s;}
+  .btn:hover{filter:brightness(1.07);}
+  .up{color:var(--up);} .down{color:var(--down);}
+  .total{margin-top:8px; text-align:right; color:var(--muted); font-size:13px;}
+  .total b{color:var(--accent); font-size:15px;}
+  .warn{color:#ffd43b; font-size:12px; min-height:16px; margin-top:4px;}
+  .chk{display:flex; gap:16px; flex-wrap:wrap; align-items:center; font-size:13px; color:#cdd6e6;}
+  .chk label{display:flex; align-items:center; gap:6px; margin:0; color:#cdd6e6; font-size:13px;}
+  .chk input{width:auto;}
+  #dmgResult{font-size:14px; line-height:1.7;}
+  #dmgResult .big{font-size:22px; font-weight:800; color:var(--accent);}
+  #dmgResult .ko{font-size:16px; font-weight:800;}
+  .moveinfo{font-size:13px; color:#cdd6e6; margin-top:6px; min-height:18px;}
+  .eff-super{color:#51cf66;} .eff-weak{color:#ff922b;} .eff-none{color:#ff6b6b;}
+  details summary{cursor:pointer; color:var(--muted); font-size:13px;}
+  .test{font-size:13px; margin-top:8px;}
+  .test .ok{color:#51cf66;} .test .fail{color:#ff6b6b;}
+  .barwrap{background:#1b2230; border-radius:6px; height:14px; overflow:hidden; margin-top:8px; border:1px solid var(--line);}
+  .bar{height:100%; background:linear-gradient(90deg,#4dabf7,#ff922b,#ff6b6b);}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1><span class="ball">●</span> 포켓칼크</h1>
+  <div class="sub">포켓몬 챔피언스 실수치 + 데미지 계산 · <b>Lv50 · IV31 · SP(0~32 / 총 66)</b></div>
+
+  <!-- 배틀 환경 -->
+  <div class="card">
+    <h2>🌤️ 배틀 환경</h2>
+    <div class="row" style="margin-bottom:0">
+      <div class="field"><label>날씨</label><select id="weather"></select></div>
+      <div class="field"><label>필드 (비행/부유/풍선이면 미적용)</label><select id="terrain"></select></div>
+    </div>
+  </div>
+
+  <!-- 공격 포켓몬 -->
+  <div class="card">
+    <h2>⚔️ 공격 포켓몬 <span class="tag lv">Lv.50</span> <span class="tag">IV 31</span> <span id="a_type"></span></h2>
+    <div class="row">
+      <div class="field"><label>🔎 포켓몬 이름</label><input id="a_search" list="dexlist" placeholder="이름 입력 (예: 한카리아스)" autocomplete="off"></div>
+      <div class="field" style="max-width:190px"><label>성격</label><select id="a_nature"></select></div>
+    </div>
+    <div class="row">
+      <div class="field"><label>특성</label><select id="a_ability"></select></div>
+      <div class="field"><label>도구</label><select id="a_item"></select></div>
+      <div class="field" style="max-width:150px"><label>공격 랭크 (공/특공)</label><select id="a_stage"></select></div>
+    </div>
+    <table>
+      <thead><tr><th style="text-align:left">능력치</th><th>종족값</th><th>SP (0~32)</th><th>실수치</th></tr></thead>
+      <tbody id="a_inputs"></tbody>
+    </table>
+    <div class="total" id="a_sptotal"></div>
+    <div class="warn" id="a_warn"></div>
+  </div>
+
+  <!-- 기술 -->
+  <div class="card">
+    <h2>💥 기술</h2>
+    <div class="row" style="margin-bottom:6px">
+      <div class="field"><label>🔎 기술 이름</label><input id="m_search" list="movelist" placeholder="기술 입력 (예: 지진)" autocomplete="off"></div>
+    </div>
+    <div class="moveinfo" id="m_info"></div>
+    <div class="chk" style="margin-top:8px">
+      <label><input type="checkbox" id="m_crit"> 급소 (×1.5)</label>
+      <label><input type="checkbox" id="m_spread"> 더블 광역기 (×0.75)</label>
+      <label><input type="checkbox" id="m_burn"> 공격자 화상/상태이상 (물리 ×0.5, 객기 ×2)</label>
+      <label>위력 수동보정 <input type="number" id="m_power" value="" min="1" placeholder="자동" style="width:64px"></label>
+      <label id="m_hits_wrap" style="display:none">연속 타수 <input type="number" id="m_hits" value="1" min="1" max="10" style="width:56px"></label>
+      <span id="m_hits_info" style="color:var(--muted)"></span>
+    </div>
+  </div>
+
+  <!-- 방어 포켓몬 -->
+  <div class="card">
+    <h2>🛡️ 방어 포켓몬 <span class="tag lv">Lv.50</span> <span class="tag">IV 31</span> <span id="d_type"></span></h2>
+    <div class="row">
+      <div class="field"><label>🔎 포켓몬 이름</label><input id="d_search" list="dexlist" placeholder="이름 입력 (예: 메타그로스)" autocomplete="off"></div>
+      <div class="field" style="max-width:190px"><label>성격</label><select id="d_nature"></select></div>
+    </div>
+    <div class="row">
+      <div class="field"><label>특성</label><select id="d_ability"></select></div>
+      <div class="field"><label>도구</label><select id="d_item"></select></div>
+      <div class="field" style="max-width:150px"><label>방어 랭크 (방/특방)</label><select id="d_stage"></select></div>
+    </div>
+    <div class="chk" style="margin-bottom:12px">
+      <label><input type="checkbox" id="d_reflect"> 리플렉터</label>
+      <label><input type="checkbox" id="d_lightscreen"> 빛의장막</label>
+      <label><input type="checkbox" id="d_aurora"> 오로라베일</label>
+      <label><input type="checkbox" id="d_friendguard"> 프렌드가드</label>
+    </div>
+    <table>
+      <thead><tr><th style="text-align:left">능력치</th><th>종족값</th><th>SP (0~32)</th><th>실수치</th></tr></thead>
+      <tbody id="d_inputs"></tbody>
+    </table>
+    <div class="total" id="d_sptotal"></div>
+    <div class="warn" id="d_warn"></div>
+    <div class="row" style="margin-top:6px; align-items:center">
+      <div class="field" style="max-width:200px"><label>남은 HP (빈칸=풀피)</label><input type="number" id="d_curhp" min="1" placeholder="풀피"></div>
+      <span id="d_hp_info" style="color:var(--muted); font-size:13px"></span>
+    </div>
+  </div>
+
+  <!-- 선공 판정 -->
+  <div class="card">
+    <h2>⚡ 선공 판정 (스피드)</h2>
+    <div class="chk"><span style="color:var(--muted); min-width:60px">공격측</span>
+      <label><input type="checkbox" id="a_scarf"> 스카프(×1.5)</label>
+      <label><input type="checkbox" id="a_tail"> 순풍(×2)</label>
+      <label><input type="checkbox" id="a_para"> 마비(×0.5)</label>
+      <label>스피드랭크 <select id="a_spe_stage" style="width:74px"></select></label>
+    </div>
+    <div class="chk" style="margin-top:6px"><span style="color:var(--muted); min-width:60px">방어측</span>
+      <label><input type="checkbox" id="d_scarf"> 스카프(×1.5)</label>
+      <label><input type="checkbox" id="d_tail"> 순풍(×2)</label>
+      <label><input type="checkbox" id="d_para"> 마비(×0.5)</label>
+      <label>스피드랭크 <select id="d_spe_stage" style="width:74px"></select></label>
+      <label>상대 기술 우선도 <input type="number" id="d_prio" value="0" min="-7" max="5" style="width:62px"></label>
+    </div>
+    <div class="chk" style="margin-top:6px">
+      <label><input type="checkbox" id="trickroom"> 트릭룸 (느린 쪽이 선공)</label>
+    </div>
+    <div id="speedResult" style="margin-top:10px; font-size:14px"></div>
+  </div>
+
+  <button class="btn" id="calcBtn">데미지 계산</button>
+
+  <div class="card" id="resultCard" style="display:none; margin-top:16px;">
+    <h2>📊 결과</h2>
+    <div id="dmgResult"></div>
+  </div>
+
+  <!-- 배틀 시뮬레이션 -->
+  <div class="card">
+    <h2>⚔️ 배틀 시뮬레이션 <span class="tag">1:1 · 풀피 · 평균 데미지</span></h2>
+    <div class="row" style="margin-bottom:6px">
+      <div class="field"><label>방어 포켓몬의 기술 (반격용)</label><input id="sim_dmove" list="movelist" placeholder="예: 섀도볼" autocomplete="off"></div>
+      <div class="field" style="max-width:140px; flex:0 0 auto"><label>&nbsp;</label><button class="btn" id="simBtn" style="padding:9px 14px">시뮬레이션 실행</button></div>
+    </div>
+    <div id="simResult" style="font-size:14px"></div>
+  </div>
+
+  <div class="card">
+    <details>
+      <summary>🔍 검토 (자체 테스트)</summary>
+      <div class="test" id="selftest"></div>
+    </details>
+  </div>
+  <div class="sub" style="margin-top:-4px">데이터 출처: PokéAPI · 1 SP = Lv50에서 실수치 +1</div>
+
+  <datalist id="dexlist"></datalist>
+  <datalist id="movelist"></datalist>
+</div>
+
+<script src="pokedex.js"></script>
+<script src="pokedata.js"></script>
+<script>
+// ===== 상수 =====
+const STAT_NAMES = ["HP","공격","방어","특공","특방","스피드"];
+const LEVEL=50, IV=31, SP_MAX=32, SP_BUDGET=66;
+// 타입 id: 3비행 5땅 6바위 9강철 10불꽃 11물 12풀 13전기 14에스퍼 15얼음 16드래곤
+
+const NATURES = [
+  {name:"노력",up:-1,down:-1},{name:"외로움",up:1,down:2},{name:"용감",up:1,down:5},
+  {name:"고집",up:1,down:3},{name:"개구쟁이",up:1,down:4},{name:"대담",up:2,down:1},
+  {name:"온순",up:-1,down:-1},{name:"무사태평",up:2,down:5},{name:"장난꾸러기",up:2,down:3},
+  {name:"촐랑",up:2,down:4},{name:"겁쟁이",up:5,down:1},{name:"성급",up:5,down:2},
+  {name:"성실",up:-1,down:-1},{name:"명랑",up:5,down:3},{name:"천진난만",up:5,down:4},
+  {name:"조심",up:3,down:1},{name:"의젓",up:3,down:2},{name:"냉정",up:3,down:5},
+  {name:"수줍음",up:-1,down:-1},{name:"덜렁",up:3,down:4},{name:"차분",up:4,down:1},
+  {name:"얌전",up:4,down:2},{name:"건방",up:4,down:5},{name:"신중",up:4,down:3},
+  {name:"변덕",up:-1,down:-1}
+];
+const WEATHERS = ["없음","쾌청","비","모래바람","눈"];
+const TERRAINS = ["없음","일렉트릭필드","그래스필드","미스트필드","사이코필드"];
+// [표시이름, 엔진키]
+const A_ABILITIES = [
+  ["없음","없음"],
+  ["적응력 (자속 ×2)","적응력"],
+  ["테크니션 (위력60↓ ×1.5)","테크니션"],
+  ["천하장사·순수한힘 (물리공격 ×2)","천하장사"],
+  ["근성 (상태이상시 물리 ×1.5)","근성"],
+  ["맹화·급류·심록·벌레의알림 (위기, 자속 ×1.5)","위기특성"],
+  ["우격다짐 (부가효과기술 ×1.3)","우격다짐"],
+  ["단단한발톱 (접촉기 ×1.3)","단단한발톱"],
+  ["철주먹 (펀치기 ×1.2)","철주먹"],
+  ["옹골찬턱 (깨물기 ×1.5)","옹골찬턱"],
+  ["메가런처 (파동기 ×1.5)","메가런처"],
+  ["예리함 (베기기술 ×1.5)","예리함"],
+  ["모래의힘 (모래·땅바위강철 ×1.3)","모래의힘"],
+  ["선파워 (쾌청·특공 ×1.5)","선파워"],
+  ["의욕 (물리공격 ×1.5)","의욕"],
+  ["분석 (후공 시 ×1.3)","분석"],
+  ["색안경 (반감 상성 ×2)","색안경"],
+  ["스나이퍼 (급소 시 ×1.5 추가)","스나이퍼"],
+  ["이판사판 (반동기 ×1.2)","이판사판"],
+  ["틀깨기·터보블레이즈·테라볼티지 (방어특성 무시)","틀깨기"]
+];
+const D_ABILITIES = [
+  ["없음","없음"],
+  ["부유 (땅 무효·필드 무시)","부유"],
+  ["두꺼운지방 (불꽃·얼음 ×0.5)","두꺼운지방"],
+  ["내열·증기기관? (불꽃 ×0.5)","내열"],
+  ["정수 (고스트 ×0.5)","정수"],
+  ["멀티스케일·샤도실드 (풀피일 때 ×0.5)","멀티스케일"],
+  ["필터·하드록·프리즘아머 (효과굉장 ×0.75)","필터"],
+  ["이상한비늘 (상태이상시 방어 ×1.5)","이상한비늘"],
+  ["천연 (상대 공격 랭크 무시)","천연"],
+  ["위협 (상대 물리공격 -1랭크)","위협"],
+  ["건조피부 (물 무효·불꽃 ×1.25)","건조피부"],
+  ["타오르는불꽃 (불꽃 무효)","타오르는불꽃"],
+  ["저수·마중물 (물 무효)","저수"],
+  ["축전·피뢰침 (전기 무효)","축전"],
+  ["초식 (풀 무효)","초식"],
+  ["흙먹기 (땅 무효)","흙먹기"],
+  ["방탄 (폭탄·구슬기 무효)","방탄"],
+  ["방음 (소리기 무효)","방음"],
+  ["옹골참 (풀피→OHKO 생존)","옹골참"]
+];
+const A_ITEMS = [
+  ["없음","없음"],
+  ["생명의구슬 (×1.3)","생명의구슬"],
+  ["구애머리띠 (물리공격 ×1.5)","구애머리띠"],
+  ["구애안경 (특수공격 ×1.5)","구애안경"],
+  ["달인의띠 (효과굉장 ×1.2)","달인의띠"],
+  ["타입강화도구 (기술타입 ×1.2)","타입강화"],
+  ["기합의띠 (풀피→1HP 생존)","기합의띠"],
+  ["풍선 (공중 부유)","풍선"]
+];
+const D_ITEMS = [
+  ["없음","없음"],
+  ["돌격조끼 (특방 ×1.5)","돌격조끼"],
+  ["진화의휘석 (방어·특방 ×1.5)","진화의휘석"],
+  ["반감열매 (효과굉장 ×0.5)","반감열매"],
+  ["기합의띠 (풀피→1HP 생존)","기합의띠"],
+  ["풍선 (땅 무효·필드 무시)","풍선"]
+];
+
+// ===== 핵심 계산 =====
+function spToEv(sp){ sp=Math.max(0,Math.min(SP_MAX, sp|0)); return sp<=0?0:8*sp-4; }
+function calcStat(si, base, iv, ev, level, nat){
+  const c = Math.floor((2*base + iv + Math.floor(ev/4)) * level / 100);
+  if(si===0) return c + level + 10;
+  const s = c + 5;
+  if(nat.up===si)   return Math.floor(s*11/10);
+  if(nat.down===si) return Math.floor(s*9/10);
+  return s;
+}
+function champStat(si, base, sp, nat){ return calcStat(si, base, IV, spToEv(sp), LEVEL, nat); }
+
+// 데미지 엔진 (Node 검증 완료)
+function pokeRound(n){ return (n - Math.floor(n) > 0.5) ? Math.ceil(n) : Math.floor(n); }
+function chain(mods){ let m=0x1000; for(const x of mods){ m=(m*x+0x800)>>12; } return m; }
+// 랭크(스탯 변화) 배율: +s → (2+s)/2, -s → 2/(2+|s|)
+function stageMult(s){ s=Math.max(-6,Math.min(6,s|0)); return s>=0 ? (2+s)/2 : 2/(2-s); }
+function baseDamage(level, power, A, D){ let x=Math.floor(2*level/5)+2; x=Math.floor(x*power*A/D); x=Math.floor(x/50)+2; return x; }
+function eff1(a,d){ return (TYPE_CHART[a] && TYPE_CHART[a][d]!==undefined) ? TYPE_CHART[a][d] : 1; }
+function grounded(types, ab, it){ return !(types.includes(3) || ab==='부유' || it==='풍선'); }
+
+function computeDamage(o){
+  const phys = o.cls==='physical';
+  const mn=o.moveName||'';
+  let A=o.A, D=o.D, power=o.power, mt=o.moveType;
+  if(o.powerOverride>0) power=o.powerOverride;        // 수동 위력 보정
+  if(mn==='객기' && o.burn) power=power*2;             // 객기: 상태이상 시 위력 ×2
+  const aT=o.aTypes||[], dT=o.dTypes||[];
+  const aAb=o.aAbility||'없음', aIt=o.aItem||'없음', dIt=o.dItem||'없음';
+  const dAbRaw=o.dAbility||'없음';
+  const dAb = (aAb==='틀깨기') ? '없음' : dAbRaw;   // 틀깨기: 방어측 데미지영향 특성 무시
+  const weather=o.weather||'없음', terrain=o.terrain||'없음';
+  const fl=o.flags||[];
+
+  // 공격측 랭크 (천연=무시, 위협=물리공격 -1)
+  let aStage=o.aStage||0;
+  if(dAbRaw==='천연') aStage=0;
+  if(dAbRaw==='위협' && phys) aStage-=1;
+  A = Math.floor(A * stageMult(aStage));
+  D = Math.floor(D * stageMult(o.dStage||0));
+
+  let immune=false;
+  if(mt===5 && (dAb==='부유'||dAb==='흙먹기'||dIt==='풍선')) immune=true;
+  if(mt===10 && dAb==='타오르는불꽃') immune=true;
+  if(mt===11 && (dAb==='저수'||dAb==='건조피부')) immune=true;   // 저수·마중물
+  if(mt===13 && dAb==='축전') immune=true;                        // 축전·피뢰침
+  if(mt===12 && dAb==='초식') immune=true;                        // 풀 무효
+  if(dAb==='방탄' && fl.includes('bullet')) immune=true;
+  if(dAb==='방음' && fl.includes('sound')) immune=true;
+
+  let eff = dT.length ? dT.reduce((m,t)=>{ let f=eff1(mt,t); if(mn==='프리즈드라이'&&t===11)f=2; return m*f; },1) : 1; // 프리즈드라이: 물 ×2
+  if(immune) eff = 0;
+
+  const stab = aT.includes(mt) ? (aAb==='적응력'?2:1.5) : 1;
+
+  const aG=grounded(aT,aAb,aIt), tG=grounded(dT,dAb,dIt);
+  let pmods=[];
+  if(aAb==='테크니션' && power<=60) pmods.push(6144);
+  if(aAb==='위기특성' && aT.includes(mt)) pmods.push(6144);
+  if(aAb==='모래의힘' && weather==='모래바람' && [5,6,9].includes(mt)) pmods.push(5325);
+  if(terrain==='일렉트릭필드' && aG && mt===13) pmods.push(5325);
+  if(terrain==='그래스필드' && aG && mt===12) pmods.push(5325);
+  if(terrain==='사이코필드' && aG && mt===14) pmods.push(5325);
+  if(terrain==='그래스필드' && tG && mt===5) pmods.push(2048);
+  if(terrain==='미스트필드' && tG && mt===16) pmods.push(2048);
+  if(aAb==='우격다짐') pmods.push(5325);                              // ×1.3 (부가효과 기술 가정)
+  if(aAb==='단단한발톱' && fl.includes('contact')) pmods.push(5325); // 접촉 ×1.3
+  if(aAb==='철주먹' && fl.includes('punch')) pmods.push(4915);       // 펀치 ×1.2
+  if(aAb==='옹골찬턱' && fl.includes('bite')) pmods.push(6144);      // 깨물기 ×1.5
+  if(aAb==='메가런처' && fl.includes('pulse')) pmods.push(6144);     // 파동 ×1.5
+  if(aAb==='예리함' && fl.includes('slicing')) pmods.push(6144);     // 베기 ×1.5
+  if(aIt==='타입강화') pmods.push(4915);                              // 타입강화도구 ×1.2
+  if(aAb==='분석') pmods.push(5325);                                  // 후공 ×1.3 (가정)
+  if(aAb==='이판사판') pmods.push(4915);                              // 반동기 ×1.2 (가정)
+  power = Math.max(1, pokeRound(power*chain(pmods)/4096));
+
+  let amods=[];
+  if(phys){ if(aAb==='천하장사')amods.push(8192); if(aAb==='근성')amods.push(6144); if(aAb==='의욕')amods.push(6144); if(aIt==='구애머리띠')amods.push(6144); }
+  else { if(aIt==='구애안경')amods.push(6144); if(aAb==='선파워'&&weather==='쾌청')amods.push(6144); }
+  A = pokeRound(A*chain(amods)/4096);
+  let dmods=[];
+  if(phys){ if(weather==='눈'&&dT.includes(15))dmods.push(6144); if(dAb==='이상한비늘')dmods.push(6144); }
+  else { if(dIt==='돌격조끼')dmods.push(6144); if(weather==='모래바람'&&dT.includes(6))dmods.push(6144); }
+  if(dIt==='진화의휘석')dmods.push(6144);
+  D = pokeRound(D*chain(dmods)/4096);
+
+  let wMod=4096;
+  if(weather==='쾌청'){ if(mt===10)wMod=6144; else if(mt===11)wMod=(mn==='하이드로스팀'?6144:2048); } // 하이드로스팀: 쾌청 ×1.5
+  if(weather==='비'){ if(mt===11)wMod=6144; else if(mt===10)wMod=2048; }
+
+  let fmods=[];
+  if(aIt==='생명의구슬')fmods.push(5324);
+  if(aIt==='달인의띠'&&eff>1)fmods.push(4915);
+  if(dAb==='두꺼운지방'&&(mt===10||mt===15))fmods.push(2048);
+  if(dAb==='멀티스케일' && o.fullHP!==false)fmods.push(2048);  // 풀피에서만
+  if(dAb==='필터'&&eff>1)fmods.push(3072);
+  if(dAb==='건조피부'&&mt===10)fmods.push(5120);   // 건조피부: 불꽃 ×1.25 받음
+  if(dAb==='내열'&&mt===10)fmods.push(2048);        // 내열: 불꽃 ×0.5
+  if(dAb==='정수'&&mt===8)fmods.push(2048);         // 정수: 고스트 ×0.5
+  if(aAb==='색안경'&&eff<1)fmods.push(8192);        // 색안경: 반감 상성 ×2
+  if(aAb==='스나이퍼'&&o.crit)fmods.push(6144);     // 스나이퍼: 급소 시 ×1.5 추가
+  if(dIt==='반감열매'&&eff>1)fmods.push(2048);      // 반감열매: 효과굉장 ×0.5
+  if(o.burn && phys && aAb!=='근성' && mn!=='객기')fmods.push(2048); // 화상: 물리 ×0.5 (근성·객기면 무효)
+  // 벽 (급소는 무시) — 더블 기준 ×2732/4096
+  if(!o.crit){
+    if(o.reflect && phys) fmods.push(2732);
+    if(o.lightscreen && !phys) fmods.push(2732);
+    if(o.aurora) fmods.push(2732);
+  }
+  if(o.friendguard) fmods.push(3072); // 프렌드가드 ×0.75
+  const fMod=chain(fmods);
+
+  if(eff===0) return {min:0,max:0,rolls:[],eff:0,stab,immune,hits:1};
+  let base=baseDamage(o.level,power,A,D);
+  if(o.spread) base=pokeRound(base*3072/4096);
+  base=pokeRound(base*wMod/4096);
+  if(o.crit) base=Math.floor(base*1.5);
+  const hits=Math.max(1, o.hits||1);
+  const rolls=[];
+  for(let r=85;r<=100;r++){
+    let d=Math.floor(base*r/100);
+    d=pokeRound(d*stab);
+    d=Math.floor(d*eff);
+    d=pokeRound(d*fMod/4096);
+    if(d<1)d=1;
+    rolls.push(d*hits);   // 다단히트: 1타 데미지 × 타수 (근사)
+  }
+  return {min:rolls[0],max:rolls[15],rolls,eff,stab,immune,hits};
+}
+
+// 확정/난수 타수 (survive: 기합의띠/옹골참 → 풀피에서 1타 버팀)
+function koText(rolls, H, survive, surviveLabel){
+  if(!rolls.length) return "";
+  const min=rolls[0], max=rolls[15];
+  let best=Math.ceil(H/max), worst=Math.ceil(H/min);
+  if(survive && best===1){
+    return `확정 2타 (${surviveLabel||"생존도구"}로 1타 버팀, 1HP)`;
+  }
+  if(best===worst) return `확정 ${best}타`;
+  if(best===1){
+    const c=rolls.filter(d=>d>=H).length;
+    return `난수 1타 (${Math.round(c/16*100)}%) · 확정 ${worst}타`;
+  }
+  return `난수 ${best}타 · 확정 ${worst}타`;
+}
+
+// ===== 선공 판정 (스피드) =====
+function effSpeed(base, scarf, tail, para, stage){
+  let s=Math.floor(base*stageMult(stage||0));   // 스피드 랭크
+  if(scarf) s=pokeRound(s*1.5);
+  if(tail)  s=s*2;
+  if(para)  s=Math.floor(s*0.5);
+  return s;
+}
+function chk(id){ return document.getElementById(id).checked; }
+function val(id){ return parseInt(document.getElementById(id).value)||0; }
+function updateSpeed(){
+  const el=document.getElementById("speedResult");
+  const A=getSide("a"), D=getSide("d");
+  if(!A.ready || !D.ready){ el.innerHTML="<span style='color:var(--muted)'>양쪽 포켓몬을 입력하면 선공을 판정합니다.</span>"; return; }
+  const as=effSpeed(A.real[5], chk("a_scarf"), chk("a_tail"), chk("a_para"), val("a_spe_stage"));
+  const ds=effSpeed(D.real[5], chk("d_scarf"), chk("d_tail"), chk("d_para"), val("d_spe_stage"));
+  const mv = (typeof MOVES!=="undefined") ? MOVES[document.getElementById("m_search").value.trim()] : null;
+  const ap = mv? (mv.prio||0) : 0;
+  const dp = parseInt(document.getElementById("d_prio").value)||0;
+  const tr = chk("trickroom");
+  let verdict, cls;
+  if(ap!==dp){
+    const aFirst = ap>dp;
+    verdict = `${aFirst?A.name:D.name} 선공 (우선도 ${aFirst?ap:dp} > ${aFirst?dp:ap})`;
+    cls = aFirst?"eff-super":"eff-weak";
+  } else if(as===ds){
+    verdict = "동속 — 선공 랜덤(50%)"; cls="";
+  } else {
+    const aFirst = tr ? (as<ds) : (as>ds);
+    verdict = `${aFirst?A.name:D.name} 선공` + (tr?" (트릭룸)":"");
+    cls = aFirst?"eff-super":"eff-weak";
+  }
+  el.innerHTML = `<div>${A.name} 스피드 <b>${as}</b>${ap?` (우선도 ${ap>0?"+":""}${ap})`:""} `
+    + `&nbsp;vs&nbsp; ${D.name} 스피드 <b>${ds}</b>${dp?` (우선도 ${dp>0?"+":""}${dp})`:""}</div>`
+    + `<div style="margin-top:4px; font-weight:800" class="${cls}">▶ ${verdict}</div>`;
+}
+
+// ===== UI =====
+function fillSelect(id, pairs){ document.getElementById(id).innerHTML = pairs.map(p=>{
+  const [label,val] = Array.isArray(p)?p:[p,p]; return `<option value="${val}">${label}</option>`; }).join(""); }
+
+function buildStatTable(prefix){
+  document.getElementById(prefix+"_inputs").innerHTML = STAT_NAMES.map((nm,i)=>
+    `<tr>
+       <td style="text-align:left"><span class="name" id="${prefix}_lbl${i}">${nm}</span></td>
+       <td><input type="number" id="${prefix}_base${i}" placeholder="–" min="1" max="255"></td>
+       <td><input type="number" id="${prefix}_sp${i}" value="0" min="0" max="${SP_MAX}"></td>
+       <td><span class="real" id="${prefix}_real${i}">–</span></td>
+     </tr>`).join("");
+}
+function clamp(v,lo,hi){ v=parseInt(v); if(isNaN(v))v=lo; return Math.max(lo,Math.min(hi,v)); }
+function baseOf(prefix,i){ const raw=document.getElementById(prefix+"_base"+i).value.trim(); return raw===""?null:clamp(raw,1,255); }
+
+function refreshSide(prefix){
+  const nat = NATURES[+document.getElementById(prefix+"_nature").value];
+  let total=0;
+  for(let i=0;i<6;i++){
+    const base = baseOf(prefix,i);
+    const sp = clamp(document.getElementById(prefix+"_sp"+i).value,0,SP_MAX);
+    total += sp;
+    document.getElementById(prefix+"_real"+i).textContent = base===null ? "–" : champStat(i, base, sp, nat);
+    const lbl = document.getElementById(prefix+"_lbl"+i);
+    lbl.className = "name" + (nat.up===i?" up":"") + (nat.down===i?" down":"");
+  }
+  document.getElementById(prefix+"_sptotal").innerHTML =
+    `SP 합계 <b style="color:${total>SP_BUDGET?'#ff6b6b':'var(--accent)'}">${total}</b> / ${SP_BUDGET}`;
+  document.getElementById(prefix+"_warn").textContent =
+    total>SP_BUDGET ? "⚠ SP 합계가 66을 초과했습니다" : "";
+  const name = document.getElementById(prefix+"_search").value.trim();
+  const tEl = document.getElementById(prefix+"_type");
+  tEl.innerHTML = (typeof POKETYPE!=="undefined" && POKETYPE[name])
+    ? POKETYPE[name].map(t=>`<span class="typebadge">${TYPE_KO[t]}</span>`).join("") : "";
+  if(prefix==="d"){  // 방어측 남은 HP 동기화
+    const maxHP = baseOf("d",0)===null ? null : champStat(0, baseOf("d",0), clamp(document.getElementById("d_sp0").value,0,SP_MAX), nat);
+    const cur=document.getElementById("d_curhp"), info=document.getElementById("d_hp_info");
+    if(maxHP){ cur.max=maxHP; cur.placeholder="풀피 "+maxHP; if(cur.value!==""&&+cur.value>maxHP)cur.value=maxHP;
+      const c = cur.value===""?maxHP:clamp(cur.value,1,maxHP);
+      info.textContent = `${c} / ${maxHP} (${Math.round(c/maxHP*100)}%)` + (c>=maxHP?" · 풀피":"");
+    } else { cur.placeholder="풀피"; info.textContent=""; }
+  }
+}
+// 방어측 현재 HP (빈칸/초과=풀피)
+function curHP(maxHP){ const raw=document.getElementById("d_curhp").value; if(raw==="") return maxHP; return clamp(raw,1,maxHP); }
+function applyDex(prefix, name){
+  if(typeof POKEDEX==="undefined" || !POKEDEX[name]) return false;
+  const base = POKEDEX[name];
+  for(let i=0;i<6;i++) document.getElementById(prefix+"_base"+i).value = base[i];
+  refreshSide(prefix); return true;
+}
+function getSide(prefix){
+  const nat = NATURES[+document.getElementById(prefix+"_nature").value];
+  const base=[], real=[]; let ready=true;
+  for(let i=0;i<6;i++){
+    const b = baseOf(prefix,i);
+    if(b===null) ready=false;
+    base[i]=b;
+    real[i]= b===null?null:champStat(i,b,clamp(document.getElementById(prefix+"_sp"+i).value,0,SP_MAX),nat);
+  }
+  const name=document.getElementById(prefix+"_search").value.trim();
+  return {name, real, ready,
+    types:(typeof POKETYPE!=="undefined"&&POKETYPE[name])?POKETYPE[name]:[],
+    ability:document.getElementById(prefix+"_ability").value,
+    item:document.getElementById(prefix+"_item").value};
+}
+function showMove(){
+  const v = document.getElementById("m_search").value.trim();
+  const el = document.getElementById("m_info");
+  if(typeof MOVES==="undefined"){ el.textContent="⚠ pokedata.js 로드 실패"; return null; }
+  const mv = MOVES[v];
+  if(!mv){ el.innerHTML = v? `⚠ '<b>${v}</b>' 기술을 찾을 수 없습니다.` : ""; return null; }
+  const prioTxt = mv.prio? ` · 우선도 ${mv.prio>0?"+":""}${mv.prio}` : "";
+  el.innerHTML = `<b style="color:var(--accent)">${v}</b> — 위력 <b>${mv.power}</b> · 타입 <span class="typebadge">${TYPE_KO[mv.type]}</span> · ${mv.cls==="physical"?"물리":"특수"}${prioTxt}`;
+  // 다단히트 UI
+  const wrap=document.getElementById("m_hits_wrap"), hin=document.getElementById("m_hits"), info=document.getElementById("m_hits_info");
+  if(mv.mh){
+    wrap.style.display="";
+    if(Array.isArray(mv.mh)){ // 변동(2~5 등): 입력 가능
+      hin.min=mv.mh[0]; hin.max=mv.mh[1]; hin.readOnly=false;
+      if(+hin.value<mv.mh[0]||+hin.value>mv.mh[1]) hin.value=mv.mh[1];
+      info.textContent=`${mv.mh[0]}~${mv.mh[1]}회 연속기 (타수 입력 가능, 스킬링크=${mv.mh[1]})`;
+    } else { // 고정 N회
+      hin.value=mv.mh; hin.min=mv.mh; hin.max=mv.mh; hin.readOnly=true;
+      info.textContent=`${mv.mh}회 고정 다단히트`;
+    }
+  } else { wrap.style.display="none"; hin.value=1; info.textContent=""; }
+  return mv;
+}
+
+// 스탯 변경 기술: 바디프레스(방어로 공격), 사이코쇼크·사이코브레이크(물리방어로 받음)
+function offDef(att, def, mv, mn){
+  const phys=mv.cls==='physical';
+  let A=att.real[phys?1:3], D=def.real[phys?2:4], aIdx=phys?1:3, dIdx=phys?2:4;
+  if(mn==='바디프레스'){ A=att.real[2]; aIdx=2; }
+  if(mn==='사이코쇼크'||mn==='사이코브레이크'){ D=def.real[2]; dIdx=2; }
+  return {A,D,aIdx,dIdx,phys};
+}
+function calculate(){
+  const A=getSide("a"), D=getSide("d"), mv=showMove();
+  const out=document.getElementById("dmgResult");
+  document.getElementById("resultCard").style.display="block";
+
+  if(!A.ready || !A.name){ out.innerHTML="<div class='warn'>공격 포켓몬 이름을 입력하세요.</div>"; return; }
+  let statsLine = `<div style='color:var(--muted); font-size:13px; margin-bottom:10px'>${A.name} 실수치 — `
+    + STAT_NAMES.map((n,i)=>`${n} ${A.real[i]}`).join(" / ") + "</div>";
+  if(!mv){ out.innerHTML=statsLine+"<div class='warn'>기술을 입력하면 데미지를 계산합니다.</div>"; return; }
+  if(!D.ready || !D.name){ out.innerHTML=statsLine+"<div class='warn'>방어 포켓몬 이름을 입력하세요.</div>"; return; }
+
+  const mn = document.getElementById("m_search").value.trim();
+  const od = offDef(A,D,mv,mn);
+  const phys = od.phys, aIdx = od.aIdx, dIdx = od.dIdx;
+  const maxHP=D.real[0];
+  const cur=curHP(maxHP);
+  const fullHP = cur>=maxHP;
+  const res = computeDamage({
+    level:LEVEL, power:mv.power, cls:mv.cls, moveType:mv.type, moveName:mn,
+    A:od.A, D:od.D, aTypes:A.types, dTypes:D.types,
+    aAbility:A.ability, dAbility:D.ability, aItem:A.item, dItem:D.item,
+    weather:document.getElementById("weather").value, terrain:document.getElementById("terrain").value,
+    crit:document.getElementById("m_crit").checked, spread:document.getElementById("m_spread").checked,
+    reflect:document.getElementById("d_reflect").checked, lightscreen:document.getElementById("d_lightscreen").checked,
+    aurora:document.getElementById("d_aurora").checked, friendguard:document.getElementById("d_friendguard").checked,
+    flags:mv.f||[], powerOverride:parseInt(document.getElementById("m_power").value)||0,
+    aStage:parseInt(document.getElementById("a_stage").value)||0,
+    dStage:parseInt(document.getElementById("d_stage").value)||0,
+    burn:document.getElementById("m_burn").checked, fullHP,
+    hits: mv.mh ? clamp(document.getElementById("m_hits").value, Array.isArray(mv.mh)?mv.mh[0]:mv.mh, Array.isArray(mv.mh)?mv.mh[1]:mv.mh) : 1
+  });
+  const H=maxHP;
+
+  let effTxt, effCls;
+  if(res.eff===0){ effTxt="효과가 없다"; effCls="eff-none"; }
+  else if(res.eff>1){ effTxt=`효과가 굉장하다 (×${res.eff})`; effCls="eff-super"; }
+  else if(res.eff<1){ effTxt=`효과가 별로다 (×${res.eff})`; effCls="eff-weak"; }
+  else { effTxt="보통 (×1)"; effCls=""; }
+
+  let html = statsLine;
+  html += `<div>${A.name} 의 <b>${STAT_NAMES[aIdx]} ${A.real[aIdx]}</b> 로 <b>${mv.power}</b> 위력 <span class="typebadge">${TYPE_KO[mv.type]}</span> ${phys?"물리":"특수"} 기술</div>`;
+  html += `<div>→ ${D.name} 의 <b>${STAT_NAMES[dIdx]} ${D.real[dIdx]}</b> (HP ${fullHP?H:cur+"/"+H}) 에게</div>`;
+  const env=[]; if(res.stab!==1)env.push(`자속 ×${res.stab}`);
+  const aStg=parseInt(document.getElementById("a_stage").value)||0, dStg=parseInt(document.getElementById("d_stage").value)||0;
+  if(aStg)env.push(`공격 ${aStg>0?"+":""}${aStg}랭크`); if(dStg)env.push(`방어 ${dStg>0?"+":""}${dStg}랭크`);
+  if(res.hits>1)env.push(`${res.hits}회 연속`);
+  const w=document.getElementById("weather").value, te=document.getElementById("terrain").value;
+  if(w!=="없음")env.push("날씨 "+w); if(te!=="없음")env.push("필드 "+te);
+  if(document.getElementById("m_crit").checked)env.push("급소"); if(document.getElementById("m_spread").checked)env.push("광역");
+  if(document.getElementById("m_burn").checked)env.push("화상");
+  if(document.getElementById("d_reflect").checked)env.push("리플렉터"); if(document.getElementById("d_lightscreen").checked)env.push("빛의장막");
+  if(document.getElementById("d_aurora").checked)env.push("오로라베일"); if(document.getElementById("d_friendguard").checked)env.push("프렌드가드");
+  html += `<div style="margin:6px 0">상성 <b class="${effCls}">${effTxt}</b>${env.length?" · "+env.join(" · "):""}</div>`;
+
+  if(res.eff===0){
+    html += `<div class="big eff-none">데미지 없음 (0)</div>`;
+  } else {
+    const minP=(res.min/H*100), maxP=(res.max/H*100);
+    html += `<div class="big">${res.min} ~ ${res.max} <span style="font-size:14px;color:var(--muted)">데미지</span></div>`;
+    html += `<div>최대 HP 대비 <b>${minP.toFixed(1)}% ~ ${maxP.toFixed(1)}%</b>` + (fullHP?"":` · 남은 HP(${cur}) 대비 <b>${(res.min/cur*100).toFixed(1)}% ~ ${(res.max/cur*100).toFixed(1)}%</b>`) + `</div>`;
+    html += `<div class="barwrap"><div class="bar" style="width:${Math.min(100,res.max/cur*100)}%"></div></div>`;
+    const survive = (D.item==="기합의띠" || D.ability==="옹골참") && fullHP;
+    const surviveLabel = D.item==="기합의띠" ? "기합의띠" : "옹골참";
+    html += `<div class="ko" style="margin-top:6px">🎯 ${koText(res.rolls, cur, survive, surviveLabel)}` + (fullHP?"":` <span style="color:var(--muted);font-size:12px">(남은 HP ${cur} 기준)</span>`) + `</div>`;
+  }
+  html += `<div style="color:var(--muted); font-size:11px; margin-top:8px">※ 테라스탈·일부 특성/도구 등 미반영 보정 있음</div>`;
+  out.innerHTML = html;
+  updateSpeed();
+}
+
+// ===== 배틀 시뮬레이션 =====
+function avgDmg(res){ return res.rolls.length ? Math.round(res.rolls.reduce((a,b)=>a+b,0)/res.rolls.length) : 0; }
+function simHits(mh){ if(!mh) return 1; if(Array.isArray(mh)) return Math.round((mh[0]+mh[1])/2); return mh; }
+function fwdOpts(att, def, mv, mn, hits, opt){
+  const od=offDef(att,def,mv,mn);
+  return { level:LEVEL, power:mv.power, cls:mv.cls, moveType:mv.type, moveName:mn,
+    A:od.A, D:od.D, aTypes:att.types, dTypes:def.types,
+    aAbility:att.ability, dAbility:def.ability, aItem:att.item, dItem:def.item,
+    weather:document.getElementById("weather").value, terrain:document.getElementById("terrain").value,
+    crit:false, spread:false, flags:mv.f||[], hits, ...opt };
+}
+function simulate(){
+  const el=document.getElementById("simResult");
+  const A=getSide("a"), D=getSide("d");
+  const mvA=(typeof MOVES!=="undefined")?MOVES[document.getElementById("m_search").value.trim()]:null;
+  const mvD=(typeof MOVES!=="undefined")?MOVES[document.getElementById("sim_dmove").value.trim()]:null;
+  if(!A.ready||!A.name||!D.ready||!D.name){ el.innerHTML="<div class='warn'>양쪽 포켓몬을 입력하세요.</div>"; return; }
+  if(!mvA){ el.innerHTML="<div class='warn'>공격 포켓몬의 기술(상단)을 입력하세요.</div>"; return; }
+  if(!mvD){ el.innerHTML="<div class='warn'>방어 포켓몬의 반격 기술을 입력하세요.</div>"; return; }
+
+  // 데미지 (평균) — A→D는 풀옵션, D→A는 기본(랭크·벽 제외)
+  const hitsA = mvA.mh ? clamp(document.getElementById("m_hits").value, Array.isArray(mvA.mh)?mvA.mh[0]:mvA.mh, Array.isArray(mvA.mh)?mvA.mh[1]:mvA.mh) : 1;
+  const mnA=document.getElementById("m_search").value.trim(), mnD=document.getElementById("sim_dmove").value.trim();
+  const maxD=D.real[0]; const hpD=curHP(maxD);
+  const resA = computeDamage(fwdOpts(A,D,mvA,mnA,hitsA,{
+    reflect:chk("d_reflect"),lightscreen:chk("d_lightscreen"),aurora:chk("d_aurora"),friendguard:chk("d_friendguard"),
+    aStage:val("a_stage"), dStage:val("d_stage"), burn:chk("m_burn"), fullHP:hpD>=maxD,
+    powerOverride:parseInt(document.getElementById("m_power").value)||0 }));
+  const resD = computeDamage(fwdOpts(D,A,mvD,mnD,simHits(mvD.mh),{ aStage:0, dStage:0 }));
+  const dmgA=avgDmg(resA), dmgD=avgDmg(resD);
+  const hpA=A.real[0];
+  const spA=effSpeed(A.real[5],chk("a_scarf"),chk("a_tail"),chk("a_para"),val("a_spe_stage"));
+  const spD=effSpeed(D.real[5],chk("d_scarf"),chk("d_tail"),chk("d_para"),val("d_spe_stage"));
+  const tr=chk("trickroom");
+
+  let hA=hpA, hD=hpD, turn=0; const log=[];
+  const burnA=chk("m_burn")?Math.max(1,Math.floor(hpA/16)):0;
+  while(hA>0 && hD>0 && turn<50){
+    turn++;
+    let aFirst;
+    if(mvA.prio!==mvD.prio) aFirst = mvA.prio>mvD.prio;
+    else if(spA===spD) aFirst=true;
+    else aFirst = tr ? spA<spD : spA>spD;
+    for(const who of (aFirst?["A","D"]:["D","A"])){
+      if(hA<=0||hD<=0) break;
+      if(who==="A"){ if(dmgA<=0){log.push(`${turn}턴: ${A.name}의 ${document.getElementById("m_search").value.trim()} → 효과 없음`);continue;} hD-=dmgA; log.push(`${turn}턴: ${A.name} → ${dmgA} (${D.name} ${Math.max(0,hD)}/${hpD})`); }
+      else { if(dmgD<=0){log.push(`${turn}턴: ${D.name}의 ${document.getElementById("sim_dmove").value.trim()} → 효과 없음`);continue;} hA-=dmgD; log.push(`${turn}턴: ${D.name} → ${dmgD} (${A.name} ${Math.max(0,hA)}/${hpA})`); }
+    }
+    if(burnA && hA>0){ hA-=burnA; log.push(`${turn}턴: ${A.name} 화상 -${burnA} (${Math.max(0,hA)}/${hpA})`); }
+  }
+  let winner, wcls;
+  if(hA<=0&&hD<=0){ winner="무승부 (동시 기절)"; wcls=""; }
+  else if(hD<=0){ winner=`🏆 ${A.name} 승리`; wcls="eff-super"; }
+  else if(hA<=0){ winner=`🏆 ${D.name} 승리`; wcls="eff-weak"; }
+  else { winner="50턴 내 결착 없음 (장기전)"; wcls=""; }
+
+  let html=`<div style="margin-bottom:8px">`
+   +`<div>${A.name} HP ${hpA} · 1회 평균 <b>${dmgA}</b> · 스피드 ${spA}</div>`
+   +`<div>${D.name} HP ${hpD} · 1회 평균 <b>${dmgD}</b> · 스피드 ${spD}</div></div>`;
+  html+=`<div class="big ${wcls}" style="font-size:18px; font-weight:800">${winner}</div>`;
+  html+=`<details style="margin-top:8px"><summary>턴 로그 (${turn}턴)</summary><div style="font-size:13px; color:#cdd6e6; margin-top:6px; line-height:1.7">${log.join("<br>")}</div></details>`;
+  html+=`<div style="color:var(--muted); font-size:11px; margin-top:8px">※ 평균 데미지·교체/추가효과 없음 가정. 반격(D→A)은 랭크·벽 미적용.</div>`;
+  el.innerHTML=html;
+}
+
+// ===== 초기화 (빈 상태로 시작) =====
+["a","d"].forEach(p=>{
+  buildStatTable(p);
+  fillSelect(p+"_nature", NATURES.map((n,i)=>{
+    const ex = n.up!==-1 ? ` (${STAT_NAMES[n.up]}↑ ${STAT_NAMES[n.down]}↓)` : " (보정없음)";
+    return [n.name+ex, i];
+  }));
+});
+fillSelect("a_ability", A_ABILITIES); fillSelect("d_ability", D_ABILITIES);
+fillSelect("a_item", A_ITEMS); fillSelect("d_item", D_ITEMS);
+fillSelect("weather", WEATHERS); fillSelect("terrain", TERRAINS);
+const STAGES=[]; for(let s=6;s>=-6;s--) STAGES.push([(s>0?"+":"")+s, s]);
+["a_stage","d_stage","a_spe_stage","d_spe_stage"].forEach(id=>{ fillSelect(id, STAGES); document.getElementById(id).value=0; });
+
+if(typeof POKEDEX!=="undefined")
+  document.getElementById("dexlist").innerHTML = Object.keys(POKEDEX).map(n=>`<option value="${n}">`).join("");
+if(typeof MOVES!=="undefined")
+  document.getElementById("movelist").innerHTML = Object.keys(MOVES).map(n=>`<option value="${n}">`).join("");
+
+["a","d"].forEach(p=>{
+  document.getElementById(p+"_nature").addEventListener("change", ()=>{refreshSide(p); updateSpeed();});
+  document.getElementById(p+"_inputs").addEventListener("input", ()=>{refreshSide(p); updateSpeed();});
+  const s=document.getElementById(p+"_search");
+  s.addEventListener("input", ()=>{ if(POKEDEX[s.value]) applyDex(p, s.value); else refreshSide(p); updateSpeed(); });
+  s.addEventListener("change", ()=>{ applyDex(p, s.value.trim()); updateSpeed(); });
+});
+document.getElementById("m_search").addEventListener("input", ()=>{showMove(); updateSpeed();});
+document.getElementById("d_curhp").addEventListener("input", ()=>refreshSide("d"));
+document.getElementById("calcBtn").addEventListener("click", calculate);
+document.getElementById("simBtn").addEventListener("click", simulate);
+["a_scarf","a_tail","a_para","d_scarf","d_tail","d_para","trickroom","d_prio","a_spe_stage","d_spe_stage"].forEach(id=>
+  document.getElementById(id).addEventListener("input", updateSpeed));
+
+// ===== 검토 =====
+function runSelfTest(){
+  const NEU={up:-1,down:-1}, ADA={up:1,down:3};
+  const tests=[]; const add=(d,g,e)=>tests.push([d,g,e,g===e]);
+  add("SP32 → EV252", spToEv(32), 252);
+  add("한카리아스 공격 SP32 고집 (Lv50)", champStat(1,130,32,ADA), 200);
+  add("1SP=+1 (중립 base100, 32SP)", champStat(1,100,32,NEU)-champStat(1,100,0,NEU), 32);
+  add("HP base100 SP0 (Lv50)", champStat(0,100,0,NEU), 175);
+  // 데미지 엔진 (Bulbapedia 예제: 얼음→드래곤/땅 ×4)
+  const dm = computeDamage({level:75,power:65,cls:"physical",moveType:15,A:123,D:163,aTypes:[15],dTypes:[16,5]});
+  add("데미지 최소 (무보정)", dm.min, 168);
+  add("데미지 최대 (무보정)", dm.max, 196);
+  add("상성 eff ×4", dm.eff, 4);
+  // 생명의구슬 ×1.3
+  const lo = computeDamage({level:75,power:65,cls:"physical",moveType:15,A:123,D:163,aTypes:[15],dTypes:[16,5],aItem:"생명의구슬"});
+  add("생명의구슬 최대", lo.max, pokeRound(196*5324/4096));
+  // 부유: 땅 무효
+  const lev = computeDamage({level:50,power:100,cls:"physical",moveType:5,A:200,D:120,aTypes:[5],dTypes:[16],dAbility:"부유"});
+  add("부유 - 땅 무효", lev.eff, 0);
+  // 필드: 비행 공격자에는 미적용
+  const baseEle={level:50,power:90,cls:"special",moveType:13,A:150,D:100,aTypes:[13,3],dTypes:[11]};
+  add("전기필드 - 비행공격자 미적용",
+    computeDamage({...baseEle,terrain:"일렉트릭필드"}).max, computeDamage({...baseEle,terrain:"없음"}).max);
+  // 리플렉터(물리 경감, 더블 ×2732) + 급소는 벽 무시
+  const dmgBase={level:75,power:65,cls:"physical",moveType:15,A:123,D:163,aTypes:[15],dTypes:[16,5]};
+  const noR=computeDamage(dmgBase), wR=computeDamage({...dmgBase,reflect:true});
+  add("리플렉터 물리 경감", wR.max, pokeRound(noR.max*2732/4096));
+  add("급소는 벽 무시", computeDamage({...dmgBase,crit:true,reflect:true}).max, computeDamage({...dmgBase,crit:true}).max);
+  // 천하장사: 물리공격 ×2 → 데미지 증가
+  add("천하장사 물리공격 강화", computeDamage({...dmgBase,aAbility:"천하장사"}).max > noR.max, true);
+  // 플래그 기반 특성: 철주먹(펀치 ×1.2)
+  const punch={level:50,power:75,cls:"physical",moveType:13,A:180,D:120,aTypes:[13],dTypes:[1],flags:["contact","punch"]};
+  add("철주먹 - 펀치기 강화", computeDamage({...punch,aAbility:"철주먹"}).max > computeDamage(punch).max, true);
+  add("철주먹 - 비펀치기엔 미적용",
+    computeDamage({...punch,flags:["contact"],aAbility:"철주먹"}).max, computeDamage({...punch,flags:["contact"]}).max);
+  // 방탄: 폭탄기 무효
+  add("방탄 - 폭탄기 무효",
+    computeDamage({level:50,power:90,cls:"special",moveType:12,A:150,D:100,aTypes:[12],dTypes:[1],flags:["bullet"],dAbility:"방탄"}).eff, 0);
+  // 반감열매: 효과굉장 ×0.5
+  add("반감열매 효과굉장 경감", computeDamage({...dmgBase,dItem:"반감열매"}).max, pokeRound(noR.max*2048/4096));
+  // 기합의띠: 풀피 OHKO 생존 → 확정 2타
+  add("기합의띠 OHKO 생존", koText([200,200,200,200,200,200,200,200,200,200,200,200,200,200,200,200],150,true,"기합의띠"), "확정 2타 (기합의띠로 1타 버팀, 1HP)");
+  // 랭크 변화
+  add("랭크 +2 배율", stageMult(2), 2);
+  add("랭크 -2 배율", stageMult(-2), 0.5);
+  add("공격 +2랭크 데미지 증가", computeDamage({...dmgBase,aStage:2}).max > noR.max, true);
+  add("방어 +2랭크 데미지 감소", computeDamage({...dmgBase,dStage:2}).max < noR.max, true);
+  // 다단히트
+  add("2회 연속 = 1회×2", computeDamage({...dmgBase,hits:2}).max, noR.max*2);
+  add("3회 연속 = 1회×3", computeDamage({...dmgBase,hits:3}).min, noR.min*3);
+  // 화상: 물리 ×0.5 / 근성이면 무효
+  add("화상 물리 경감", computeDamage({...dmgBase,burn:true}).max, pokeRound(noR.max*2048/4096));
+  add("근성은 화상 무시", computeDamage({...dmgBase,burn:true,aAbility:"근성"}).max, computeDamage({...dmgBase,aAbility:"근성"}).max);
+  // 틀깨기: 부유 무시 → 땅 명중
+  add("틀깨기 - 부유 무시", computeDamage({level:50,power:100,cls:"physical",moveType:5,A:200,D:120,aTypes:[5],dTypes:[16],dAbility:"부유",aAbility:"틀깨기"}).eff, 1);
+  // 색안경: 반감 상성 ×2
+  const resist={level:50,power:100,cls:"special",moveType:10,A:150,D:100,aTypes:[10],dTypes:[11]}; // 불꽃→물 ×0.5
+  add("색안경 반감 상성 보정", computeDamage({...resist,aAbility:"색안경"}).max, computeDamage(resist).max*2);
+  // 내열: 불꽃 ×0.5
+  const fireHit={level:50,power:100,cls:"special",moveType:10,A:150,D:100,aTypes:[10],dTypes:[1]};
+  add("내열 불꽃 경감", computeDamage({...fireHit,dAbility:"내열"}).max, pokeRound(computeDamage(fireHit).max*2048/4096));
+  // 위협: 물리공격 -1랭크 → 데미지 감소
+  add("위협 물리 약화", computeDamage({...dmgBase,dAbility:"위협"}).max < noR.max, true);
+  // 천연: 공격 랭크 무시
+  add("천연 공격랭크 무시", computeDamage({...dmgBase,aStage:2,dAbility:"천연"}).max, noR.max);
+  // 스피드 랭크
+  add("스피드 +1랭크 ×1.5", effSpeed(100,false,false,false,1), 150);
+  add("스피드 -1랭크 ×0.66", effSpeed(99,false,false,false,-1), 66);
+  // 남은 HP / 멀티스케일 풀피 조건
+  add("멀티스케일 비풀피 미발동", computeDamage({...dmgBase,dAbility:"멀티스케일",fullHP:false}).max, noR.max);
+  add("멀티스케일 풀피 발동", computeDamage({...dmgBase,dAbility:"멀티스케일",fullHP:true}).max, pokeRound(noR.max*2048/4096));
+  const rr=[50,50,50,50,50,50,50,50,50,50,50,50,50,50,50,50];
+  add("남은HP 40이면 확정 1타", koText(rr,40), "확정 1타");
+  add("풀피 100이면 확정 2타", koText(rr,100), "확정 2타");
+  // 조건부 기술
+  add("객기 상태이상 위력2배", computeDamage({...dmgBase,moveName:"객기",burn:true}).max > computeDamage({...dmgBase,moveName:"객기"}).max, true);
+  const wsun={level:50,power:80,cls:"special",moveType:11,A:150,D:100,aTypes:[11],dTypes:[1],weather:"쾌청"};
+  add("하이드로스팀 쾌청 강화", computeDamage({...wsun,moveName:"하이드로스팀"}).max > computeDamage(wsun).max, true);
+  add("프리즈드라이 물 ×2", computeDamage({level:50,power:70,cls:"special",moveType:15,A:150,D:100,aTypes:[15],dTypes:[11],moveName:"프리즈드라이"}).eff, 2);
+  add("바디프레스 방어로 공격", offDef({real:[100,50,200,60,70,80]},{real:[100,100,100,100,100,100]},{cls:"physical"},"바디프레스").A, 200);
+  add("사이코쇼크 물리방어로 받음", offDef({real:[100,100,100,100,100,100]},{real:[100,100,77,100,150,100]},{cls:"special"},"사이코쇼크").D, 77);
+  add("위력 수동보정", computeDamage({...dmgBase,powerOverride:300}).max > computeDamage(dmgBase).max, true);
+  // 선공: 빠른 쪽 선공 / 트릭룸 반전
+  add("스피드 우위 판정", effSpeed(100,false,false,false) > effSpeed(80,false,false,false), true);
+  add("스카프 ×1.5", effSpeed(100,true,false,false), 150);
+  add("마비 ×0.5", effSpeed(100,false,false,true), 50);
+  // 타수 표기
+  add("확정 2타 표기", koText([100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100],150), "확정 2타");
+
+  let all=true,html="";
+  for(const [d,g,e,ok] of tests){ all=all&&ok; html+=`<div class="${ok?'ok':'fail'}">${ok?'✓':'✗'} ${d} — ${g} / 기대 ${e}</div>`; }
+  html+=`<div style="margin-top:8px"><b class="${all?'ok':'fail'}">==> ${all?'모든 테스트 통과':'테스트 실패'}</b></div>`;
+  document.getElementById("selftest").innerHTML=html;
+}
+
+refreshSide("a"); refreshSide("d"); updateSpeed();
+runSelfTest();
+if(typeof POKEDEX==="undefined" || typeof MOVES==="undefined"){
+  document.getElementById("resultCard").style.display="block";
+  document.getElementById("dmgResult").innerHTML="<div class='warn'>⚠ pokedex.js / pokedata.js 를 같은 폴더에 두세요.</div>";
+}
+</script>
+</body>
+</html>
