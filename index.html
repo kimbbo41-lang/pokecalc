@@ -77,8 +77,8 @@
       <div class="field" style="max-width:190px"><label>성격</label><select id="a_nature"></select></div>
     </div>
     <div class="row">
-      <div class="field"><label>특성</label><select id="a_ability"></select></div>
-      <div class="field"><label>도구</label><select id="a_item"></select></div>
+      <div class="field"><label>특성 (검색)</label><input id="a_ability" list="abilitylist" placeholder="없음" autocomplete="off"></div>
+      <div class="field"><label>도구 (검색)</label><input id="a_item" list="itemlist" placeholder="없음" autocomplete="off"></div>
       <div class="field" style="max-width:150px"><label>공격 랭크 (공/특공)</label><select id="a_stage"></select></div>
     </div>
     <table>
@@ -114,8 +114,8 @@
       <div class="field" style="max-width:190px"><label>성격</label><select id="d_nature"></select></div>
     </div>
     <div class="row">
-      <div class="field"><label>특성</label><select id="d_ability"></select></div>
-      <div class="field"><label>도구</label><select id="d_item"></select></div>
+      <div class="field"><label>특성 (검색)</label><input id="d_ability" list="abilitylist" placeholder="없음" autocomplete="off"></div>
+      <div class="field"><label>도구 (검색)</label><input id="d_item" list="itemlist" placeholder="없음" autocomplete="off"></div>
       <div class="field" style="max-width:150px"><label>방어 랭크 (방/특방)</label><select id="d_stage"></select></div>
     </div>
     <div class="chk" style="margin-bottom:12px">
@@ -185,6 +185,8 @@
 
   <datalist id="dexlist"></datalist>
   <datalist id="movelist"></datalist>
+  <datalist id="abilitylist"></datalist>
+  <datalist id="itemlist"></datalist>
 </div>
 
 <script src="pokedex.js"></script>
@@ -208,85 +210,13 @@ const NATURES = [
 ];
 const WEATHERS = ["없음","쾌청","비","모래바람","눈"];
 const TERRAINS = ["없음","일렉트릭필드","그래스필드","미스트필드","사이코필드"];
-// [표시이름, 엔진키]
-const A_ABILITIES = [
-  ["없음","없음"],
-  ["적응력 (자속 ×2)","적응력"],
-  ["테크니션 (위력60↓ ×1.5)","테크니션"],
-  ["천하장사·순수한힘 (물리공격 ×2)","천하장사"],
-  ["근성 (상태이상시 물리 ×1.5)","근성"],
-  ["맹화·급류·심록·벌레의알림 (위기, 자속 ×1.5)","위기특성"],
-  ["우격다짐 (부가효과기술 ×1.3)","우격다짐"],
-  ["단단한발톱 (접촉기 ×1.3)","단단한발톱"],
-  ["철주먹 (펀치기 ×1.2)","철주먹"],
-  ["옹골찬턱 (깨물기 ×1.5)","옹골찬턱"],
-  ["메가런처 (파동기 ×1.5)","메가런처"],
-  ["예리함 (베기기술 ×1.5)","예리함"],
-  ["모래의힘 (모래·땅바위강철 ×1.3)","모래의힘"],
-  ["선파워 (쾌청·특공 ×1.5)","선파워"],
-  ["의욕 (물리공격 ×1.5)","의욕"],
-  ["분석 (후공 시 ×1.3)","분석"],
-  ["색안경 (반감 상성 ×2)","색안경"],
-  ["스나이퍼 (급소 시 ×1.5 추가)","스나이퍼"],
-  ["이판사판 (반동기 ×1.2)","이판사판"],
-  ["틀깨기·터보블레이즈·테라볼티지 (방어특성 무시)","틀깨기"],
-  ["변환자재·리베로 (모든 기술 자속)","변환자재"],
-  ["강철술사·강철정신 (강철 ×1.5)","강철술사"],
-  ["트랜지스터 (전기 ×1.3)","트랜지스터"],
-  ["용의턱 (드래곤 ×1.5)","용의턱"],
-  ["바위운반 (바위 ×1.5)","바위운반"],
-  ["수포 (물 ×2)","수포"],
-  ["펑크록 (소리기 ×1.3)","펑크록"],
-  ["브레인포스 (효과굉장 ×1.25)","브레인포스"],
-  ["옹고집 (물리공격 ×1.5)","옹고집"],
-  ["독폭주 (상태이상·물리공격 ×1.5)","독폭주"],
-  ["화염폭주 (상태이상·특수공격 ×1.5)","화염폭주"],
-  ["고대활성 (쾌청·공격/특공 ×1.3)","고대활성"],
-  ["쿼크차지 (일렉트릭필드·공격/특공 ×1.3)","쿼크차지"]
-];
-const D_ABILITIES = [
-  ["없음","없음"],
-  ["부유 (땅 무효·필드 무시)","부유"],
-  ["두꺼운지방 (불꽃·얼음 ×0.5)","두꺼운지방"],
-  ["내열 (불꽃 ×0.5)","내열"],
-  ["정수 (고스트 ×0.5)","정수"],
-  ["멀티스케일·섀도실드 (풀피일 때 ×0.5)","멀티스케일"],
-  ["필터·하드록·프리즘아머 (효과굉장 ×0.75)","필터"],
-  ["이상한비늘 (상태이상시 방어 ×1.5)","이상한비늘"],
-  ["천연 (상대 공격 랭크 무시)","천연"],
-  ["위협 (상대 물리공격 -1랭크)","위협"],
-  ["건조피부 (물 무효·불꽃 ×1.25)","건조피부"],
-  ["타오르는불꽃 (불꽃 무효)","타오르는불꽃"],
-  ["저수·마중물 (물 무효)","저수"],
-  ["축전·피뢰침 (전기 무효)","축전"],
-  ["초식 (풀 무효)","초식"],
-  ["흙먹기 (땅 무효)","흙먹기"],
-  ["방탄 (폭탄·구슬기 무효)","방탄"],
-  ["방음 (소리기 무효)","방음"],
-  ["옹골참 (풀피→OHKO 생존)","옹골참"]
-];
-const A_ITEMS = [
-  ["없음","없음"],
-  ["생명의구슬 (×1.3)","생명의구슬"],
-  ["구애머리띠 (물리공격 ×1.5)","구애머리띠"],
-  ["구애안경 (특수공격 ×1.5)","구애안경"],
-  ["달인의띠 (효과굉장 ×1.2)","달인의띠"],
-  ["타입강화도구·판 (기술타입 ×1.2)","타입강화"],
-  ["젬 (기술타입 ×1.3, 1회)","젬"],
-  ["근육밴드 (물리 ×1.1)","근육밴드"],
-  ["지식안경 (특수 ×1.1)","지식안경"],
-  ["펀치글러브 (펀치기 ×1.1)","펀치글러브"],
-  ["기합의띠 (풀피→1HP 생존)","기합의띠"],
-  ["풍선 (공중 부유)","풍선"]
-];
-const D_ITEMS = [
-  ["없음","없음"],
-  ["돌격조끼 (특방 ×1.5)","돌격조끼"],
-  ["진화의휘석 (방어·특방 ×1.5)","진화의휘석"],
-  ["반감열매 (효과굉장 ×0.5)","반감열매"],
-  ["기합의띠 (풀피→1HP 생존)","기합의띠"],
-  ["풍선 (땅 무효·필드 무시)","풍선"]
-];
+// 특성/도구 목록은 pokedata.js의 ABILITIES_KO / ITEMS_KO(전체 한글) 사용
+// 효과 구현 특성(대표 키): 적응력·테크니션·천하장사·근성·맹화/급류/심록/벌레의알림·우격다짐·단단한발톱·철주먹·
+//   옹골찬턱·메가런처·예리함·모래의힘·선파워·의욕·애널라이즈·색안경·스나이퍼·이판사판·틀깨기·변환자재·
+//   강철술사·트랜지스터·용의턱·바위나르기·수포·펑크록·브레인포스·무아지경·독폭주·열폭주·고대활성·쿼크차지 /
+//   부유·두꺼운지방·내열·정화의소금·멀티스케일·필터·이상한비늘·천진·위협·건조피부·타오르는불꽃·저수·축전·초식·흙먹기·방탄·방음·옹골참
+// 효과 구현 도구: 생명의구슬·구애머리띠·구애안경·달인의띠·타입강화도구/플레이트·노말주얼·힘의머리띠·박식안경·
+//   펀치글러브·기합의띠·풍선·돌격조끼·진화의휘석·반감열매
 
 // ===== 핵심 계산 =====
 function spToEv(sp){ sp=Math.max(0,Math.min(SP_MAX, sp|0)); return sp<=0?0:8*sp-4; }
@@ -316,15 +246,20 @@ function computeDamage(o){
   if(o.powerOverride>0) power=o.powerOverride;        // 수동 위력 보정
   if(mn==='객기' && o.burn) power=power*2;             // 객기: 상태이상 시 위력 ×2
   const aT=o.aTypes||[], dT=o.dTypes||[];
-  const aAb=o.aAbility||'없음', aIt=o.aItem||'없음', dIt=o.dItem||'없음';
-  const dAbRaw=o.dAbility||'없음';
+  // 동의어(효과 동일) 특성을 대표 키로 정규화
+  const AB_ALIAS={순수한힘:'천하장사',리베로:'변환자재',터보블레이즈:'틀깨기',테라볼티지:'틀깨기',하드록:'필터',프리즘아머:'필터',스펙터가드:'멀티스케일',마중물:'저수',피뢰침:'축전',강철정신:'강철술사'};
+  let aAb=o.aAbility||'없음'; aAb=AB_ALIAS[aAb]||aAb;
+  const aIt=o.aItem||'없음', dIt=o.dItem||'없음';
+  let dAbRaw=o.dAbility||'없음'; dAbRaw=AB_ALIAS[dAbRaw]||dAbRaw;
   const dAb = (aAb==='틀깨기') ? '없음' : dAbRaw;   // 틀깨기: 방어측 데미지영향 특성 무시
   const weather=o.weather||'없음', terrain=o.terrain||'없음';
   const fl=o.flags||[];
+  const PINCH={맹화:10,급류:11,심록:12,벌레의알림:7};   // 위기 발동 타입강화
+  const isTypeItem = (typeof TYPE_ITEMS!=='undefined') && TYPE_ITEMS.indexOf(aIt)>=0;
 
-  // 공격측 랭크 (천연=무시, 위협=물리공격 -1)
+  // 공격측 랭크 (천진=무시, 위협=물리공격 -1)
   let aStage=o.aStage||0;
-  if(dAbRaw==='천연') aStage=0;
+  if(dAbRaw==='천진') aStage=0;
   if(dAbRaw==='위협' && phys) aStage-=1;
   A = Math.floor(A * stageMult(aStage));
   D = Math.floor(D * stageMult(o.dStage||0));
@@ -347,7 +282,7 @@ function computeDamage(o){
   const aG=grounded(aT,aAb,aIt), tG=grounded(dT,dAb,dIt);
   let pmods=[];
   if(aAb==='테크니션' && power<=60) pmods.push(6144);
-  if(aAb==='위기특성' && aT.includes(mt)) pmods.push(6144);
+  if(PINCH[aAb]===mt) pmods.push(6144);                              // 맹화·급류·심록·벌레의알림 (위기)
   if(aAb==='모래의힘' && weather==='모래바람' && [5,6,9].includes(mt)) pmods.push(5325);
   if(terrain==='일렉트릭필드' && aG && mt===13) pmods.push(5325);
   if(terrain==='그래스필드' && aG && mt===12) pmods.push(5325);
@@ -360,26 +295,26 @@ function computeDamage(o){
   if(aAb==='옹골찬턱' && fl.includes('bite')) pmods.push(6144);      // 깨물기 ×1.5
   if(aAb==='메가런처' && fl.includes('pulse')) pmods.push(6144);     // 파동 ×1.5
   if(aAb==='예리함' && fl.includes('slicing')) pmods.push(6144);     // 베기 ×1.5
-  if(aIt==='타입강화') pmods.push(4915);                              // 타입강화도구·판 ×1.2
-  if(aAb==='분석') pmods.push(5325);                                  // 후공 ×1.3 (가정)
+  if(isTypeItem) pmods.push(4915);                                   // 타입강화도구·플레이트·향로 ×1.2
+  if(aAb==='애널라이즈') pmods.push(5325);                            // 후공 ×1.3 (가정)
   if(aAb==='이판사판') pmods.push(4915);                              // 반동기 ×1.2 (가정)
   // 타입 강화 특성
-  if((aAb==='강철술사'||aAb==='강철정신')&&mt===9) pmods.push(6144);  // 강철 ×1.5
+  if(aAb==='강철술사'&&mt===9) pmods.push(6144);                      // 강철 ×1.5 (강철정신 포함)
   if(aAb==='트랜지스터'&&mt===13) pmods.push(5325);                   // 전기 ×1.3
   if(aAb==='용의턱'&&mt===16) pmods.push(6144);                       // 드래곤 ×1.5
-  if(aAb==='바위운반'&&mt===6) pmods.push(6144);                      // 바위 ×1.5
+  if(aAb==='바위나르기'&&mt===6) pmods.push(6144);                    // 바위 ×1.5
   if(aAb==='수포'&&mt===11) pmods.push(8192);                         // 물 ×2
   if(aAb==='펑크록'&&fl.includes('sound')) pmods.push(5325);          // 소리 ×1.3
   // 화력 도구
-  if(aIt==='젬') pmods.push(5324);                                    // 젬 ×1.3
-  if(aIt==='근육밴드'&&phys) pmods.push(4506);                        // 물리 ×1.1
-  if(aIt==='지식안경'&&!phys) pmods.push(4506);                       // 특수 ×1.1
+  if(aIt==='노말주얼'&&mt===1) pmods.push(5324);                      // 노말주얼: 노말 ×1.3 (1회)
+  if(aIt==='힘의머리띠'&&phys) pmods.push(4506);                      // 물리 ×1.1
+  if(aIt==='박식안경'&&!phys) pmods.push(4506);                       // 특수 ×1.1
   if(aIt==='펀치글러브'&&fl.includes('punch')) pmods.push(4506);      // 펀치 ×1.1
   power = Math.max(1, pokeRound(power*chain(pmods)/4096));
 
   let amods=[];
-  if(phys){ if(aAb==='천하장사')amods.push(8192); if(aAb==='근성')amods.push(6144); if(aAb==='의욕')amods.push(6144); if(aAb==='옹고집')amods.push(6144); if(aAb==='독폭주'&&o.burn)amods.push(6144); if(aIt==='구애머리띠')amods.push(6144); }
-  else { if(aIt==='구애안경')amods.push(6144); if(aAb==='선파워'&&weather==='쾌청')amods.push(6144); if(aAb==='화염폭주'&&o.burn)amods.push(6144); }
+  if(phys){ if(aAb==='천하장사')amods.push(8192); if(aAb==='근성')amods.push(6144); if(aAb==='의욕')amods.push(6144); if(aAb==='무아지경')amods.push(6144); if(aAb==='독폭주'&&o.burn)amods.push(6144); if(aIt==='구애머리띠')amods.push(6144); }
+  else { if(aIt==='구애안경')amods.push(6144); if(aAb==='선파워'&&weather==='쾌청')amods.push(6144); if(aAb==='열폭주'&&o.burn)amods.push(6144); }
   if(aAb==='고대활성'&&weather==='쾌청')amods.push(5325);       // 패러독스: 공격/특공 ×1.3
   if(aAb==='쿼크차지'&&terrain==='일렉트릭필드')amods.push(5325);
   A = pokeRound(A*chain(amods)/4096);
@@ -401,11 +336,11 @@ function computeDamage(o){
   if(dAb==='필터'&&eff>1)fmods.push(3072);
   if(dAb==='건조피부'&&mt===10)fmods.push(5120);   // 건조피부: 불꽃 ×1.25 받음
   if(dAb==='내열'&&mt===10)fmods.push(2048);        // 내열: 불꽃 ×0.5
-  if(dAb==='정수'&&mt===8)fmods.push(2048);         // 정수: 고스트 ×0.5
+  if(dAb==='정화의소금'&&mt===8)fmods.push(2048);   // 정화의소금: 고스트 ×0.5
   if(aAb==='색안경'&&eff<1)fmods.push(8192);        // 색안경: 반감 상성 ×2
   if(aAb==='브레인포스'&&eff>1)fmods.push(5120);    // 브레인포스: 효과굉장 ×1.25
   if(aAb==='스나이퍼'&&o.crit)fmods.push(6144);     // 스나이퍼: 급소 시 ×1.5 추가
-  if(dIt==='반감열매'&&eff>1)fmods.push(2048);      // 반감열매: 효과굉장 ×0.5
+  if((typeof RESIST_BERRIES!=='undefined')&&RESIST_BERRIES.indexOf(dIt)>=0&&eff>1)fmods.push(2048); // 반감열매(오카·야파 등): 효과굉장 ×0.5
   if(o.burn && phys && aAb!=='근성' && mn!=='객기')fmods.push(2048); // 화상: 물리 ×0.5 (근성·객기면 무효)
   // 벽 (급소는 무시) — 더블 기준 ×2732/4096
   if(!o.crit){
@@ -729,8 +664,9 @@ function simulate(){
     return [n.name+ex, i];
   }));
 });
-fillSelect("a_ability", A_ABILITIES); fillSelect("d_ability", D_ABILITIES);
-fillSelect("a_item", A_ITEMS); fillSelect("d_item", D_ITEMS);
+const optList = arr => (arr||[]).map(n=>`<option value="${n}">`).join("");
+if(typeof ABILITIES_KO!=="undefined") document.getElementById("abilitylist").innerHTML = optList(ABILITIES_KO);
+if(typeof ITEMS_KO!=="undefined") document.getElementById("itemlist").innerHTML = optList(ITEMS_KO);
 fillSelect("weather", WEATHERS); fillSelect("terrain", TERRAINS);
 const STAGES=[]; for(let s=6;s>=-6;s--) STAGES.push([(s>0?"+":"")+s, s]);
 ["a_stage","d_stage","a_spe_stage","d_spe_stage"].forEach(id=>{ fillSelect(id, STAGES); document.getElementById(id).value=0; });
@@ -793,7 +729,7 @@ function runSelfTest(){
   add("방탄 - 폭탄기 무효",
     computeDamage({level:50,power:90,cls:"special",moveType:12,A:150,D:100,aTypes:[12],dTypes:[1],flags:["bullet"],dAbility:"방탄"}).eff, 0);
   // 반감열매: 효과굉장 ×0.5
-  add("반감열매 효과굉장 경감", computeDamage({...dmgBase,dItem:"반감열매"}).max, pokeRound(noR.max*2048/4096));
+  add("반감열매(오카) 효과굉장 경감", computeDamage({...dmgBase,dItem:"오카열매"}).max, pokeRound(noR.max*2048/4096));
   // 기합의띠: 풀피 OHKO 생존 → 확정 2타
   add("기합의띠 OHKO 생존", koText([200,200,200,200,200,200,200,200,200,200,200,200,200,200,200,200],150,true,"기합의띠"), "확정 2타 (기합의띠로 1타 버팀, 1HP)");
   // 랭크 변화
@@ -818,7 +754,7 @@ function runSelfTest(){
   // 위협: 물리공격 -1랭크 → 데미지 감소
   add("위협 물리 약화", computeDamage({...dmgBase,dAbility:"위협"}).max < noR.max, true);
   // 천연: 공격 랭크 무시
-  add("천연 공격랭크 무시", computeDamage({...dmgBase,aStage:2,dAbility:"천연"}).max, noR.max);
+  add("천진 공격랭크 무시", computeDamage({...dmgBase,aStage:2,dAbility:"천진"}).max, noR.max);
   // 스피드 랭크
   add("스피드 +1랭크 ×1.5", effSpeed(100,false,false,false,1), 150);
   add("스피드 -1랭크 ×0.66", effSpeed(99,false,false,false,-1), 66);
@@ -842,10 +778,14 @@ function runSelfTest(){
   const elec={level:50,power:80,cls:"special",moveType:13,A:150,D:100,aTypes:[13],dTypes:[1]};
   add("트랜지스터 전기 강화", computeDamage({...elec,aAbility:"트랜지스터"}).max > computeDamage(elec).max, true);
   add("변환자재 자속 부여", computeDamage({level:50,power:80,cls:"physical",moveType:1,A:150,D:100,aTypes:[7],dTypes:[11],aAbility:"변환자재"}).stab, 1.5);
-  add("젬 화력 증가", computeDamage({...dmgBase,aItem:"젬"}).max > noR.max, true);
-  add("근육밴드 물리 강화", computeDamage({...dmgBase,aItem:"근육밴드"}).max > noR.max, true);
+  const norm1={level:50,power:80,cls:"physical",moveType:1,A:150,D:100,aTypes:[1],dTypes:[11]};
+  add("노말주얼 노말 강화", computeDamage({...norm1,aItem:"노말주얼"}).max > computeDamage(norm1).max, true);
+  add("힘의머리띠 물리 강화", computeDamage({...dmgBase,aItem:"힘의머리띠"}).max > noR.max, true);
+  add("타입강화도구(목탄) 강화", computeDamage({...dmgBase,aItem:"목탄"}).max > noR.max, true);
+  add("동의어 하드록=필터", computeDamage({...dmgBase,dAbility:"하드록"}).max, computeDamage({...dmgBase,dAbility:"필터"}).max);
+  add("맹화 위기 강화", computeDamage({level:50,power:80,cls:"special",moveType:10,A:150,D:100,aTypes:[10],dTypes:[1],aAbility:"맹화"}).max > computeDamage({level:50,power:80,cls:"special",moveType:10,A:150,D:100,aTypes:[10],dTypes:[1]}).max, true);
   add("브레인포스 효과굉장 강화", computeDamage({...dmgBase,aAbility:"브레인포스"}).max, pokeRound(noR.max*5120/4096));
-  add("옹고집 물리 강화", computeDamage({...dmgBase,aAbility:"옹고집"}).max > noR.max, true);
+  add("무아지경 물리 강화", computeDamage({...dmgBase,aAbility:"무아지경"}).max > noR.max, true);
   // 선공: 빠른 쪽 선공 / 트릭룸 반전
   add("스피드 우위 판정", effSpeed(100,false,false,false) > effSpeed(80,false,false,false), true);
   add("스카프 ×1.5", effSpeed(100,true,false,false), 150);
