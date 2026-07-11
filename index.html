@@ -245,6 +245,8 @@ function computeDamage(o){
   let A=o.A, D=o.D, power=o.power, mt=o.moveType;
   if(o.powerOverride>0) power=o.powerOverride;        // 수동 위력 보정
   if(mn==='객기' && o.burn) power=power*2;             // 객기: 상태이상 시 위력 ×2
+  // 웨더볼: 날씨에 따라 타입 변화 + 위력 2배
+  if(mn==='웨더볼'){ const WB={쾌청:10,비:11,모래바람:6,눈:15}, w=o.weather||'없음'; if(WB[w]!==undefined){ mt=WB[w]; power=power*2; } }
   const aT=o.aTypes||[], dT=o.dTypes||[];
   // 동의어(효과 동일) 특성을 대표 키로 정규화
   const AB_ALIAS={순수한힘:'천하장사',리베로:'변환자재',터보블레이즈:'틀깨기',테라볼티지:'틀깨기',하드록:'필터',프리즘아머:'필터',스펙터가드:'멀티스케일',마중물:'저수',피뢰침:'축전',강철정신:'강철술사'};
@@ -280,6 +282,7 @@ function computeDamage(o){
   const stab = (aT.includes(mt)||protean) ? (aAb==='적응력'?2:1.5) : 1; // 변환자재·리베로: 항상 자속
 
   const aG=grounded(aT,aAb,aIt), tG=grounded(dT,dAb,dIt);
+  const effBasePower=power;   // 타입변화·객기·수동보정 반영된 표시용 위력
   let pmods=[];
   if(aAb==='테크니션' && power<=60) pmods.push(6144);
   if(PINCH[aAb]===mt) pmods.push(6144);                              // 맹화·급류·심록·벌레의알림 (위기)
@@ -351,7 +354,7 @@ function computeDamage(o){
   if(o.friendguard) fmods.push(3072); // 프렌드가드 ×0.75
   const fMod=chain(fmods);
 
-  if(eff===0) return {min:0,max:0,rolls:[],eff:0,stab,immune,hits:1};
+  if(eff===0) return {min:0,max:0,rolls:[],eff:0,stab,immune,hits:1,moveType:mt};
   let base=baseDamage(o.level,power,A,D);
   if(o.spread) base=pokeRound(base*3072/4096);
   base=pokeRound(base*wMod/4096);
@@ -366,7 +369,7 @@ function computeDamage(o){
     if(d<1)d=1;
     rolls.push(d*hits);   // 다단히트: 1타 데미지 × 타수 (근사)
   }
-  return {min:rolls[0],max:rolls[15],rolls,eff,stab,immune,hits};
+  return {min:rolls[0],max:rolls[15],rolls,eff,stab,immune,hits,moveType:mt,power:effBasePower};
 }
 
 // 확정/난수 타수 (survive: 기합의띠/옹골참 → 풀피에서 1타 버팀)
@@ -561,7 +564,10 @@ function calculate(){
   else { effTxt="보통 (×1)"; effCls=""; }
 
   let html = statsLine;
-  html += `<div>${A.name} 의 <b>${STAT_NAMES[aIdx]} ${A.real[aIdx]}</b> 로 <b>${mv.power}</b> 위력 <span class="typebadge">${TYPE_KO[mv.type]}</span> ${phys?"물리":"특수"} 기술</div>`;
+  const shownType = res.moveType!==undefined?res.moveType:mv.type;
+  const shownPow = res.power||mv.power;
+  const typeChanged = shownType!==mv.type;
+  html += `<div>${A.name} 의 <b>${STAT_NAMES[aIdx]} ${A.real[aIdx]}</b> 로 <b>${shownPow}</b> 위력 <span class="typebadge">${TYPE_KO[shownType]}</span>${typeChanged?`<span style="color:var(--muted);font-size:11px"> (${TYPE_KO[mv.type]}→변화)</span>`:""} ${phys?"물리":"특수"} 기술</div>`;
   html += `<div>→ ${D.name} 의 <b>${STAT_NAMES[dIdx]} ${D.real[dIdx]}</b> (HP ${fullHP?H:cur+"/"+H}) 에게</div>`;
   const env=[]; if(res.stab!==1)env.push(`자속 ×${res.stab}`);
   const aStg=parseInt(document.getElementById("a_stage").value)||0, dStg=parseInt(document.getElementById("d_stage").value)||0;
@@ -784,6 +790,14 @@ function runSelfTest(){
   add("타입강화도구(목탄) 강화", computeDamage({...dmgBase,aItem:"목탄"}).max > noR.max, true);
   add("동의어 하드록=필터", computeDamage({...dmgBase,dAbility:"하드록"}).max, computeDamage({...dmgBase,dAbility:"필터"}).max);
   add("맹화 위기 강화", computeDamage({level:50,power:80,cls:"special",moveType:10,A:150,D:100,aTypes:[10],dTypes:[1],aAbility:"맹화"}).max > computeDamage({level:50,power:80,cls:"special",moveType:10,A:150,D:100,aTypes:[10],dTypes:[1]}).max, true);
+  // 웨더볼: 날씨별 타입/위력 변화
+  const wbBase={level:50,power:50,cls:"special",moveType:1,A:150,D:100,aTypes:[1],dTypes:[1],moveName:"웨더볼"};
+  add("웨더볼 무날씨 노말 유지", computeDamage(wbBase).moveType, 1);
+  add("웨더볼 쾌청→불꽃", computeDamage({...wbBase,weather:"쾌청"}).moveType, 10);
+  add("웨더볼 쾌청 위력2배", computeDamage({...wbBase,weather:"쾌청"}).power, 100);
+  add("웨더볼 비→물", computeDamage({...wbBase,weather:"비"}).moveType, 11);
+  add("웨더볼 모래→바위", computeDamage({...wbBase,weather:"모래바람"}).moveType, 6);
+  add("웨더볼 눈→얼음", computeDamage({...wbBase,weather:"눈"}).moveType, 15);
   add("브레인포스 효과굉장 강화", computeDamage({...dmgBase,aAbility:"브레인포스"}).max, pokeRound(noR.max*5120/4096));
   add("무아지경 물리 강화", computeDamage({...dmgBase,aAbility:"무아지경"}).max > noR.max, true);
   // 선공: 빠른 쪽 선공 / 트릭룸 반전
